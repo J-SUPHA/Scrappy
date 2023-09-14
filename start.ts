@@ -51,8 +51,25 @@ function sleep(ms: number): Promise<void> {
     await page.click('#user-select-yesme');
     await sleep(2000);
     const otp = await askQuestion("Enter your mobile OTP: ");
+    const isSmsOtp = await page.$('#PHONE_SMS_OTP-0');
+    const isVoiceOtp = await page.$('#PHONE_VOICE_OTP-0');
+    const isWhatsAppOtp = await page.$('#PHONE_WHATSAPP_OTP-0');
+
+    let baseSelector = '';
+
+    if (isSmsOtp) {
+        baseSelector = `#PHONE_SMS_OTP-`;
+    } else if (isVoiceOtp) {
+        baseSelector = `#PHONE_VOICE_OTP-`;
+    } else if (isWhatsAppOtp) {
+        baseSelector = `#PHONE_WHATSAPP_OTP-`;
+    } else {
+        console.error("No known OTP input found.");
+        return;  // Or handle this situation as needed
+    }
+    // Fill in the OTP
     for (let i = 0; i < otp.length; i++) {
-        const selector = `#PHONE_SMS_OTP-${i}`;
+        const selector = `${baseSelector}${i}`;
         await page.fill(selector, otp[i]);
     }
     await sleep(2000);
@@ -68,10 +85,13 @@ function sleep(ms: number): Promise<void> {
     await page.click('[data-baseweb="button"][data-buttonkey="https://riders.uber.com/trips"]');
     await sleep(3000);
     const cards: ElementHandle[] = await page.$$('section[data-baseweb="card"]._css-gtxWCh');
-    console.log(cards);
-    console.log("Everything seems to be working")
-    for (const card of cards) {
+    let current: number = 0;
+    const length: number = cards.length;
+    while (current < length) {
         console.log("Loop is starting")
+        const cards: ElementHandle[] = await page.$$('section[data-baseweb="card"]._css-gtxWCh');
+        let card = cards[current];
+        current++;
 
         await sleep(2000);
 
