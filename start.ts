@@ -120,11 +120,11 @@ function sleep(ms: number): Promise<void> {
                 if (downloadLink){
                     const downloadHref = await downloadLink.getAttribute('href');
                     if (downloadHref) {
-                        const receiptBuffer = await page.evaluate(async (url)=>{
-                        const response = await fetch(url);
-                        const arrayBuffer = await response.arrayBuffer();
-                        return new Uint8Array(arrayBuffer);
-                        },downloadHref);
+                        const receiptBuffer = await page.evaluate((url) => {
+                            return fetch(url)
+                                .then(response => response.arrayBuffer())
+                                .then(arrayBuffer => new Uint8Array(arrayBuffer))
+                        }, downloadHref);
                         const dirPath = path.join(process.cwd(), 'receipts');
                         if (!fs.existsSync(dirPath)){
                             fs.mkdirSync(dirPath);
