@@ -87,7 +87,7 @@ function sleep(ms: number): Promise<void> {
           
           const dateObj = new Date(dateTimeText);
           const hour = dateObj.getHours(); // This gets the hour (0-23)
-          console.log("The infomration has been collected");
+          console.log("The information has been collected");
       
           // Check if time is between 1:00 PM and 11:00 AM (i.e., hour is >= 13 or hour is <= 11)
           // and location matches the target location
@@ -99,7 +99,7 @@ function sleep(ms: number): Promise<void> {
                 await viewDetailsButton.click();
                 await sleep(2000);
                 // fetch the price
-                const priceElement = await page.$('p._css-dTqljZ')
+                const priceElement = await page.$('p._css-dTqljZ') //need to alter this to retrieve the actual price 
                 let price = "";
                 if (priceElement) {
                     price = await priceElement.innerText();
@@ -118,31 +118,32 @@ function sleep(ms: number): Promise<void> {
                 // Download the PDF
                 const downloadLink = await page.$('a._css-iuijBg');
                 if (downloadLink){
-                    const downloadHref = await downloadLink.getAttribute('href');
-                    if (downloadHref) {
-                        const receiptBuffer = await page.evaluate((url) => {
-                            return fetch(url)
-                                .then(response => response.arrayBuffer())
-                                .then(arrayBuffer => new Uint8Array(arrayBuffer))
-                        }, downloadHref);
-                        const dirPath = path.join(process.cwd(), 'receipts');
-                        if (!fs.existsSync(dirPath)){
-                            fs.mkdirSync(dirPath);
-                        }
-                        const filePath = path.join(dirPath, `${dateTimeText}_${locationText}.pdf`);
-                        fs.writeFileSync(filePath, receiptBuffer);
+                    const [download] = await Promise.all([
+                        page.waitForEvent('download'),
+                        downloadLink.click()
+                    ]);
+                    const dirPath = path.join(process.cwd(), 'receipts');
+                    if (!fs.existsSync(dirPath)){
+                        fs.mkdirSync(dirPath);
                     }
+                    const filePath = path.join(dirPath, `${dateTimeText}_${locationText}.pdf`);
+                    await download.saveAs(filePath);
                 }
-                const closeButton = await page.$('button._cssSsjcU');
+                console.log("The information has been downloaded successfully");
+                console.log("Coming back to the main page");
+                const closeButton = await page.$('button._css-SsjcU');
                 if (closeButton){
+                    console.log("Found the close button");
                     await closeButton.click();
                     await sleep(2000);
                 }
+                console.log("Back to the trips baby");
                 const backtoTripsButton = await page.$('button._css-fzayjn');
                 if (backtoTripsButton){
                     await backtoTripsButton.click();
                     await sleep(2000);
                 }
+                console.log("Loop done");
                 }
             }
         }
