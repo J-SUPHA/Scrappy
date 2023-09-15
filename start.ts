@@ -119,10 +119,12 @@ function sleep(ms: number): Promise<void> {
                 await viewDetailsButton.click();
                 await sleep(2000);
                 // fetch the price
-                const priceElement = await page.$('p._css-dTqljZ') //need to alter this to retrieve the actual price 
+                const priceBlock = await page.$('svg[title="Tag"] + div._css-cqcWtx > p._css-dTqljZ');
                 let price = "";
-                if (priceElement) {
-                    price = await priceElement.innerText();
+                console.log("The price has been fetched ", priceBlock);
+                if (priceBlock) {
+                    price = await priceBlock.innerText();
+                    console.log(price);
                     const csvFilePath = path.join(process.cwd(), 'ledger.csv');
                     if (!fs.existsSync(csvFilePath)){
                         fs.writeFileSync(csvFilePath, 'Date,Location,Price\n');
