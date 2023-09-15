@@ -73,6 +73,13 @@ function sleep(ms: number): Promise<void> {
         await page.fill(selector, otp[i]);
     }
     await sleep(2000);
+    const passwordInput = await page.$('PASSWORD');
+    if (passwordInput){
+        const password = await askQuestion("Enter your password: ");
+        await page.fill('#PASSWORD', password);
+        await page.click('#forward-button');
+        await sleep(2000);
+    }
     try {
         // Attempt to click on the button with a 2-second timeout
         await page.click('[data-baseweb="button"][data-buttonkey="smallHeaderRight"]', { timeout: 2000 });
@@ -84,92 +91,118 @@ function sleep(ms: number): Promise<void> {
     await sleep(1000);
     await page.click('[data-baseweb="button"][data-buttonkey="https://riders.uber.com/trips"]');
     await sleep(3000);
-    const cards: ElementHandle[] = await page.$$('section[data-baseweb="card"]._css-gtxWCh');
-    let current: number = 0;
-    const length: number = cards.length;
-    while (current < length) {
-        console.log("Loop is starting")
+    let pageSelector: number = 0;
+    const spanSelector = "div[data-baseweb='pagination'] > span._css-bucRsj";
+    const spanText = await page.innerText(spanSelector);
+    const extractedNumber = parseInt(spanText.split(" ")[1], 10);
+    console.log("The number of pages are ", extractedNumber);
+    while (pageSelector < extractedNumber) {
         const cards: ElementHandle[] = await page.$$('section[data-baseweb="card"]._css-gtxWCh');
-        let card = cards[current];
-        current++;
+        let current: number = 0;
+        const length: number = cards.length;
+        while (current < length) {
+            console.log("Loop is starting")
+            const cards: ElementHandle[] = await page.$$('section[data-baseweb="card"]._css-gtxWCh');
+            let card = cards[current];
+            current++;
 
-        await sleep(2000);
+            await sleep(2000);
 
-        const dateTimeElement = await card.$('p._css-dTqljZ');
-        const locationElement = await card.$('div._css-byJCfZ');
-        if (dateTimeElement && locationElement) {
+            const dateTimeElement = await card.$('p._css-dTqljZ');
+            const locationElement = await card.$('div._css-byJCfZ');
+            if (dateTimeElement && locationElement) {
         
-        if (dateTimeElement && locationElement) {
-          const dateTimeText = await dateTimeElement.innerText();
-          const locationText = await locationElement.innerText();
+            if (dateTimeElement && locationElement) {
+                const dateTimeText = await dateTimeElement.innerText();
+                const locationText = await locationElement.innerText();
           
-          const targetLocation = '15 W 61st St, New York, NY 10023, US';
+                const targetLocation = '15 W 61st St, New York, NY 10023, US';
           
-          const dateObj = new Date(dateTimeText);
-          const hour = dateObj.getHours(); // This gets the hour (0-23)
-          console.log("The information has been collected");
+                const dateObj = new Date(dateTimeText);
+                const hour = dateObj.getHours(); // This gets the hour (0-23)
+                console.log("The information has been collected");
       
-          // Check if time is between 1:00 PM and 11:00 AM (i.e., hour is >= 13 or hour is <= 11)
-          // and location matches the target location
-          if ((hour >= 13 || hour <= 11) && locationText.trim() === targetLocation) {
-            console.log("The hours have been changed");
-            const viewDetailsButton = await card.$('a._css-hBHgGw');
-            if (viewDetailsButton) {
-                console.log("new button has been clicked");
-                await viewDetailsButton.click();
-                await sleep(2000);
-                // fetch the price
-                const priceBlock = await page.$('svg[title="Tag"] + div._css-cqcWtx > p._css-dTqljZ');
-                let price = "";
-                console.log("The price has been fetched ", priceBlock);
-                if (priceBlock) {
-                    price = await priceBlock.innerText();
-                    console.log(price);
-                    const csvFilePath = path.join(process.cwd(), 'ledger.csv');
-                    if (!fs.existsSync(csvFilePath)){
-                        fs.writeFileSync(csvFilePath, 'Date,Location,Price\n');
+                // Check if time is between 1:00 PM and 11:00 AM (i.e., hour is >= 13 or hour is <= 11)
+                // and location matches the target location
+                if ((hour >= 13 || hour <= 11) && locationText.trim() === targetLocation) {
+                    console.log("The hours have been changed");
+                    const viewDetailsButton = await card.$('a._css-hBHgGw');
+                    if (viewDetailsButton) {
+                        console.log("new button has been clicked");
+                        await viewDetailsButton.click();
+                        await sleep(2000);
+                        // fetch the price
+                        const details = await page.$$eval('div[data-baseweb="block"]._css-iMyxrY > div._css-cqcWtx > p._css-dTqljZ', nodes => nodes.map(n => (n as HTMLElement).innerText));
+
+                        // Check if we have extracted all 5 expected details
+                        const carType = details[0] || "N/A";
+                        const distance = details[1] || "N/A";
+                        const time = details[2] || "N/A";
+                        const price = details[3] || "N/A";
+                        const paymentMethod = details[4] || "N/A";
+
+                        console.log(`Car Type: ${carType}`);
+                        console.log(`Distance: ${distance}`);
+                        console.log(`Time: ${time}`);
+                        console.log(`Price: ${price}`);
+                        console.log(`Payment Method: ${paymentMethod}`);
+
+                        const csvFilePath = path.join(process.cwd(), 'ledger.csv');
+
+                        if (!fs.existsSync(csvFilePath)) {
+                            fs.writeFileSync(csvFilePath, 'Date,Location,Car Type,Distance,Time,Price,Payment Method\n');
+                        }
+
+                        fs.appendFileSync(csvFilePath, `${dateTimeText},${locationText},${carType},${distance},${time},${price},${paymentMethod}\n`);
+
+                        // Click on the 'View Receipt' button
+                        const viewReceiptButton = await page.$('button._css-hBHgGw');
+                        if (viewReceiptButton) {
+                            await viewReceiptButton.click();
+                            await sleep(2000);
+                        }
+                        // Download the PDF
+                        const downloadLink = await page.$('a._css-iuijBg');
+                        if (downloadLink){
+                            const [download] = await Promise.all([
+                                page.waitForEvent('download'),
+                                downloadLink.click()
+                            ]);
+                            const dirPath = path.join(process.cwd(), 'receipts');
+                            if (!fs.existsSync(dirPath)){
+                                fs.mkdirSync(dirPath);
+                            }
+                            const filePath = path.join(dirPath, `${dateTimeText}_${locationText}.pdf`);
+                            await download.saveAs(filePath);
+                        }
+                        console.log("The information has been downloaded successfully");
+                        console.log("Coming back to the main page");
+                        const closeButton = await page.$('button._css-SsjcU');
+                        if (closeButton){
+                            console.log("Found the close button");
+                            await closeButton.click();
+                            await sleep(2000);
+                        }
+                        console.log("Back to the trips baby");
+                        const backtoTripsButton = await page.$('button._css-fzayjn');
+                        if (backtoTripsButton){
+                            await backtoTripsButton.click();
+                            await sleep(2000);
+                        }
+                        console.log("Loop done");
+                        }
                     }
-                    fs.appendFileSync(csvFilePath, `${dateTimeText},${locationText},${price}\n`);
-                }
-                // Click on the 'View Receipt' button
-                const viewReceiptButton = await page.$('button._css-hBHgGw');
-                if (viewReceiptButton) {
-                    await viewReceiptButton.click();
-                    await sleep(2000);
-                }
-                // Download the PDF
-                const downloadLink = await page.$('a._css-iuijBg');
-                if (downloadLink){
-                    const [download] = await Promise.all([
-                        page.waitForEvent('download'),
-                        downloadLink.click()
-                    ]);
-                    const dirPath = path.join(process.cwd(), 'receipts');
-                    if (!fs.existsSync(dirPath)){
-                        fs.mkdirSync(dirPath);
-                    }
-                    const filePath = path.join(dirPath, `${dateTimeText}_${locationText}.pdf`);
-                    await download.saveAs(filePath);
-                }
-                console.log("The information has been downloaded successfully");
-                console.log("Coming back to the main page");
-                const closeButton = await page.$('button._css-SsjcU');
-                if (closeButton){
-                    console.log("Found the close button");
-                    await closeButton.click();
-                    await sleep(2000);
-                }
-                console.log("Back to the trips baby");
-                const backtoTripsButton = await page.$('button._css-fzayjn');
-                if (backtoTripsButton){
-                    await backtoTripsButton.click();
-                    await sleep(2000);
-                }
-                console.log("Loop done");
                 }
             }
+            }
+            if (pageSelector === extractedNumber-1){
+                break;
+            }
+            console.log("The page is ",pageSelector, "\n The extracted number is ", extractedNumber);
+            const nextButtonSelector = 'button[data-baseweb="button"][aria-label^="next page"]';
+            await page.click(nextButtonSelector);
+            await sleep(30000);
+            pageSelector++;
         }
-      }
-    }
     await browser.close();
 })();
