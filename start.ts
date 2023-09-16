@@ -29,7 +29,8 @@ function sleep(ms: number): Promise<void> {
     
 
     // Input your email and password
-    await page.fill('#PHONE_NUMBER_or_EMAIL_ADDRESS', 'jaisehgal11299@gmail.com');
+    let email = await askQuestion("Enter your email: ");
+    await page.fill('#PHONE_NUMBER_or_EMAIL_ADDRESS', email);
     const loginButton = await page.$('#forward-button');  // Adjust the selector based on the actual one
     if (loginButton) {
         await loginButton.click();
@@ -44,7 +45,8 @@ function sleep(ms: number): Promise<void> {
     }
 
     await sleep(2000);
-    await page.fill("#PHONE_NUMBER", '3477550853')
+    let phoneNumber = await askQuestion("Enter your phone number: ");
+    await page.fill("#PHONE_NUMBER", phoneNumber)
 
     await page.click('#forward-button');
     await sleep(2000);
@@ -109,7 +111,7 @@ function sleep(ms: number): Promise<void> {
             await sleep(2000);
 
             const dateTimeElement = await card.$('p._css-dTqljZ');
-            const locationElement = await card.$('div._css-byJCfZ');
+            const locationElement = await card.$('p[data-baseweb="typo-paragraphmedium"]._css-jBkfju');
             if (dateTimeElement && locationElement) {
         
             if (dateTimeElement && locationElement) {
@@ -124,7 +126,7 @@ function sleep(ms: number): Promise<void> {
       
                 // Check if time is between 1:00 PM and 11:00 AM (i.e., hour is >= 13 or hour is <= 11)
                 // and location matches the target location
-                if ((hour >= 13 || hour <= 11) && locationText.trim() === targetLocation) {
+                if ((hour >= 17 || hour < 5) && locationText.trim() === targetLocation) {
                     console.log("The hours have been changed");
                     const viewDetailsButton = await card.$('a._css-hBHgGw');
                     if (viewDetailsButton) {
