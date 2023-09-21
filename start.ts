@@ -119,14 +119,41 @@ function sleep(ms: number): Promise<void> {
                 const locationText = await locationElement.innerText();
           
                 const targetLocation = '15 W 61st St, New York, NY 10023, US';
-          
+                const target_work_location = new Set<String>();
+                target_work_location.add('1370 Avenue of the Americas, New York, NY 10019-4601, US');
+                target_work_location.add('1370 Avenue of the Americas, New York, NY 10019, US');
+                target_work_location.add('1370 6th Ave, New York, NY 10019, US');
+                target_work_location.add('1371 Avenue of the Americas, New York, NY 10019, US');
+                target_work_location.add('1371 6th Ave, New York, NY 10019, US');
+                target_work_location.add('1372 Avenue of the Americas, New York, NY 10019, US');
+                target_work_location.add('1372 6th Ave, New York, NY 10019, US');
+                target_work_location.add('1373 Avenue of the Americas, New York, NY 10019, US');
+                target_work_location.add('1373 6th Ave, New York, NY 10019, US');
+                target_work_location.add('1374 Avenue of the Americas, New York, NY 10019, US');
+                target_work_location.add('1374 6th Ave, New York, NY 10019, US');
+                target_work_location.add('1375 Avenue of the Americas, New York, NY 10019, US');
+                target_work_location.add('1375 6th Ave, New York, NY 10019, US');
+                target_work_location.add('1376 Avenue of the Americas, New York, NY 10019, US');
+                target_work_location.add('1376 6th Ave, New York, NY 10019, US');
+                target_work_location.add('1377 Avenue of the Americas, New York, NY 10019, US');
+                target_work_location.add('1377 6th Ave, New York, NY 10019, US');
+                target_work_location.add('1378 Avenue of the Americas, New York, NY 10019, US');
+                target_work_location.add('1378 6th Ave, New York, NY 10019, US');
+                target_work_location.add('1379 Avenue of the Americas, New York, NY 10019, US');
+                target_work_location.add('1379 6th Ave, New York, NY 10019, US');
+                target_work_location.add('1380 Avenue of the Americas, New York, NY 10019, US');
+                target_work_location.add('1380 6th Ave, New York, NY 10019, US');
+                target_work_location.add('38 West 56th st, New York, NY 10019, US');
+                target_work_location.add('38 W 56th st, New York, NY 10019, US');
+
                 const dateObj = new Date(dateTimeText);
                 const hour = dateObj.getHours(); // This gets the hour (0-23)
                 console.log("The information has been collected");
       
                 // Check if time is between 1:00 PM and 11:00 AM (i.e., hour is >= 13 or hour is <= 11)
                 // and location matches the target location
-                if ((hour >= 17 || hour < 5) && locationText.trim() === targetLocation) {
+                console.log("The location that was found is ", locationText.trim());
+                if ((hour >= 18 || hour < 5) && target_work_location.has(locationText.trim())) {
                     console.log("The hours have been changed");
                     const viewDetailsButton = await card.$('a._css-hBHgGw');
                     if (viewDetailsButton) {
